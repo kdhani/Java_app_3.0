@@ -18,7 +18,7 @@ pipeline{
         stage('Git Checkout'){
                     when { expression {  params.action == 'create' } }
             steps{
-            sh "git branch: 'main', url: 'https://github.com/kdhani/Java_app_3.0/blob/main/Jenkinsfile'"
+                git branch: 'main', url: 'https://github.com/kdhani/Java_app_3.0/blob/main/Jenkinsfile'
             }
         }
          stage('Unit Test maven'){
