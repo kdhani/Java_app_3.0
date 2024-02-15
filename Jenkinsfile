@@ -1,4 +1,4 @@
-//@Library('my-shared-library') _
+@Library('my-shared-library') _
 
 pipeline{
 
@@ -16,10 +16,12 @@ pipeline{
     stages{
          
         stage('Git Checkout'){
-                when { expression {  params.action == 'create' } }
+                    when { expression {  params.action == 'create' } }
             steps{
-                git branch: 'main', url: 'https://github.com/kdhani/Java_app_3.0.git'
-                
+            gitCheckout(
+                branch: "main",
+                url: "https://github.com/kdhani/Java_app_3.0.git"
+            )
             }
         }
          stage('Unit Test maven'){
@@ -29,7 +31,7 @@ pipeline{
             steps{
                script{
                    
-                   sh 'mvn test'
+                   mvnTest()
                }
             }
         }
@@ -38,7 +40,7 @@ pipeline{
             steps{
                script{
                    
-                   sh 'mvn verify -DskipUnitTests'
+                   mvnIntegrationTest()
                }
             }
         }
@@ -47,7 +49,8 @@ pipeline{
             steps{
                script{
                    
-                   sh 'mvn clean package sonar:sonar'
+                   def SonarQubecredentialsId = 'sonarqube-api'
+                   statiCodeAnalysis(SonarQubecredentialsId)
                }
             }
        }
@@ -66,7 +69,7 @@ pipeline{
             steps{
                script{
                    
-                   sh 'mvn clean install -DskipTests'
+                   mvnBuild()
                }
             }
         }
@@ -75,7 +78,7 @@ pipeline{
             steps{
                script{
                    
-                   sh "docker image build -t dhani345/java_app_3.0:latest ."
+                   dockerBuild("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
                }
             }
         }
@@ -84,7 +87,7 @@ pipeline{
             steps{
                script{
                    
-                   sh """trivy image dhani345/java_app_3.0:latest>scan.txt"""
+                   dockerImageScan("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
                }
             }
         }
@@ -93,18 +96,7 @@ pipeline{
             steps{
                script{
                    
-
-                   withCredentials([usernamePassword(
-                       credentialsId: "docker",
-                       usernameVariable: "USER",
-                       passwordVariable: "PASS"
-                    )]) {
-                        sh "docker login -u '$USER' -p '$PASS'"
-                    }
-                   
-                   
-                   sh  "docker login -u '$user' -p '$pass' "
-                   sh "docker image push dhani345/java_app_3.0:latest"
+                   dockerImagePush("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
                }
             }
         }   
@@ -113,7 +105,7 @@ pipeline{
             steps{
                script{
                    
-                   sh """docker rmi dhani345/java_app_3.0:latest"""
+                   dockerImageCleanup("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
                }
             }
         }      
