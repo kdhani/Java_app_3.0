@@ -1,4 +1,4 @@
-@Library('my-shared-library') _
+//@Library('my-shared-library') _
 
 pipeline{
 
@@ -20,7 +20,7 @@ pipeline{
             steps{
             gitCheckout(
                 branch: "main",
-                url: "https://github.com/kdhani/Java_app_3.0.git"
+                url: "https://github.com/praveen1994dec/Java_app_3.0.git"
             )
             }
         }
@@ -31,7 +31,7 @@ pipeline{
             steps{
                script{
                    
-                   mvnTest()
+                   sh 'mvn test'
                }
             }
         }
@@ -49,8 +49,7 @@ pipeline{
             steps{
                script{
                    
-                   def SonarQubecredentialsId = 'sonarqube-api'
-                   statiCodeAnalysis(SonarQubecredentialsId)
+                   sh 'mvn clean package sonar:sonar'
                }
             }
        }
@@ -69,7 +68,7 @@ pipeline{
             steps{
                script{
                    
-                   mvnBuild()
+                   sh 'mvn clean install -DskipTests'
                }
             }
         }
@@ -78,7 +77,7 @@ pipeline{
             steps{
                script{
                    
-                   dockerBuild("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
+                   sh "docker image build -t dhani345/java_app_3.0:latest ."
                }
             }
         }
@@ -87,16 +86,8 @@ pipeline{
             steps{
                script{
                    
-                   dockerImageScan("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
+                   sh """trivy image dhani345/java_app_3.0:latest>scan.txt"""
                }
-            }
-        }
-        stage ('Pushing Jfrog File'){
-          when { expression {  params.action == 'create' } }
-          steps{
-            script{
-                 sh 'curl -X PUT -u admin:Dhani345 -T  /var/lib/jenkins/workspace/2/target/kubernetes-configmap-reload-0.0.1-SNAPSHOT.jar "http://3.80.95.50:8082/artifactory/example-repo-local/kubernetes-configmap-reload-0.0.1-SNAPSHOT.jar"'
-                }
             }
         }
         stage('Docker Image Push : DockerHub '){
@@ -104,7 +95,18 @@ pipeline{
             steps{
                script{
                    
-                   dockerImagePush("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
+
+                   withCredentials([usernamePassword(
+                       credentialsId: "docker",
+                       usernameVariable: "USER",
+                       passwordVariable: "PASS"
+                    )]) {
+                        sh "docker login -u '$USER' -p '$PASS'"
+                    }
+                   
+                   
+                   sh  "docker login -u '$user' -p '$pass' "
+                   sh "docker image push dhani345/java_app_3.0:latest"
                }
             }
         }   
@@ -113,7 +115,7 @@ pipeline{
             steps{
                script{
                    
-                   dockerImageCleanup("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
+                   sh """docker rmi dhani345/java_app_3.0:latest"""
                }
             }
         }      
