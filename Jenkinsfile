@@ -18,7 +18,7 @@ pipeline{
         stage('Git Checkout'){
                     when { expression {  params.action == 'create' } }
             steps{
-            gitCheckout(
+            gitCheckout1(
                 branch: "main",
                 url: "https://github.com/kdhani/Java_app_3.0.git"
             )
